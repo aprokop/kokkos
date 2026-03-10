@@ -101,12 +101,24 @@ void sort_by_key_cudathrust(
     const Kokkos::View<KeysDataType, KeysProperties...>& keys,
     const Kokkos::View<ValuesDataType, ValuesProperties...>& values,
     MaybeComparator&&... maybeComparator) {
+  constexpr bool is_always_contiguous =
+      (std::is_same_v<typename view_type::traits::array_layout,
+                      Kokkos::LayoutLeft> ||
+       std::is_same_v<typename view_type::traits::array_layout,
+                      Kokkos::LayoutRight>);
+
   const auto policy = thrust::cuda::par.on(exec.cuda_stream());
-  auto keys_first   = ::Kokkos::Experimental::begin(keys);
-  auto keys_last    = ::Kokkos::Experimental::end(keys);
-  auto values_first = ::Kokkos::Experimental::begin(values);
-  thrust::sort_by_key(policy, keys_first, keys_last, values_first,
-                      std::forward<MaybeComparator>(maybeComparator)...);
+  if (is_always_contiguous && view.stride(0) == 1) {
+    thrust::sort_by_key(policy, keys.data(), keys.data() + keys.size(),
+                        values.data(),
+                        std::forward<MaybeComparator>(maybeComparator)...);
+  } else {
+    auto keys_first   = ::Kokkos::Experimental::begin(keys);
+    auto keys_last    = ::Kokkos::Experimental::end(keys);
+    auto values_first = ::Kokkos::Experimental::begin(values);
+    thrust::sort_by_key(policy, keys_first, keys_last, values_first,
+                        std::forward<MaybeComparator>(maybeComparator)...);
+  }
 }
 #endif
 
@@ -121,12 +133,24 @@ void sort_by_key_rocthrust(
     const Kokkos::View<KeysDataType, KeysProperties...>& keys,
     const Kokkos::View<ValuesDataType, ValuesProperties...>& values,
     MaybeComparator&&... maybeComparator) {
+  constexpr bool is_always_contiguous =
+      (std::is_same_v<typename view_type::traits::array_layout,
+                      Kokkos::LayoutLeft> ||
+       std::is_same_v<typename view_type::traits::array_layout,
+                      Kokkos::LayoutRight>);
+
   const auto policy = thrust::hip::par.on(exec.hip_stream());
-  auto keys_first   = ::Kokkos::Experimental::begin(keys);
-  auto keys_last    = ::Kokkos::Experimental::end(keys);
-  auto values_first = ::Kokkos::Experimental::begin(values);
-  thrust::sort_by_key(policy, keys_first, keys_last, values_first,
-                      std::forward<MaybeComparator>(maybeComparator)...);
+  if (is_always_contiguous && view.stride(0) == 1) {
+    thrust::sort_by_key(policy, keys.data(), keys.data() + keys.size(),
+                        values.data(),
+                        std::forward<MaybeComparator>(maybeComparator)...);
+  } else {
+    auto keys_first   = ::Kokkos::Experimental::begin(keys);
+    auto keys_last    = ::Kokkos::Experimental::end(keys);
+    auto values_first = ::Kokkos::Experimental::begin(values);
+    thrust::sort_by_key(policy, keys_first, keys_last, values_first,
+                        std::forward<MaybeComparator>(maybeComparator)...);
+  }
 }
 #endif
 
